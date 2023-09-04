@@ -3,6 +3,9 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\ApiFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrderFilter;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Patch;
@@ -11,8 +14,11 @@ use App\Repository\PostRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: PostRepository::class)]
+#[UniqueEntity('title')]
 #[ApiResource(
   operations: [
     new Get(
@@ -25,8 +31,11 @@ use Symfony\Component\Serializer\Annotation\Groups;
     new Patch(),
   ],
   // normalizationContext: ['groups' => ['post:read']],
-  denormalizationContext: ['groups' => ['post:write']]
+  denormalizationContext: ['groups' => ['post:write']],
+  paginationItemsPerPage: 10
 )]
+#[ApiFilter(SearchFilter::class, properties: ['title' => 'partial', 'body' => 'partial', 'category.name' => 'partial'])]
+#[ApiFilter(OrderFilter::class, properties: ['id'])]
 class Post
 {
   #[ORM\Id]
@@ -36,10 +45,14 @@ class Post
   private ?int $id = null;
 
   #[ORM\Column(length: 255)]
+  #[Assert\NotBlank]
+  #[Assert\Length(min: 3, max: 255)]
   #[Groups(['post:read', 'post:write'])]
   private ?string $title = null;
 
   #[ORM\Column(type: Types::TEXT)]
+  #[Assert\NotBlank]
+  #[Assert\Length(min: 10, max: 500)]
   #[Groups(['post:read:item', 'post:write'])]
   private ?string $body = null;
 
